@@ -687,7 +687,7 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
             borrowerScaledCollateral, collateralReserve.supplyIndex, Math.Rounding.Floor
         );
         bool dustLiquidation = _isDustLiquidation(collateralAsset, borrowerCollateral, debtValueWad);
-        if (dustLiquidation && (targetCollateralAmount == 0 || targetCollateralAmount > borrowerCollateral)) {
+        if (targetCollateralAmount == 0 || (dustLiquidation && targetCollateralAmount > borrowerCollateral)) {
             return _transferAllDustCollateral(
                 borrower,
                 liquidator,
