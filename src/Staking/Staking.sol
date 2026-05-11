@@ -256,8 +256,6 @@ contract Staking is IStaking, Ownable2Step, ReentrancyGuard, Pausable {
         uint256 amount = reward.queuedPenalty;
         if (amount == 0) revert NoQueuedPenalty();
 
-        _updateRewardGlobal(rewardToken);
-
         if (amount < MIN_FLUSH_PENALTY_AMOUNT) revert PenaltyAmountTooLow(amount, MIN_FLUSH_PENALTY_AMOUNT);
 
         uint64 currentTime = _currentTime();

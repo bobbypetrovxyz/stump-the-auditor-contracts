@@ -350,8 +350,6 @@ contract Vault is IVault, Ownable2Step, ReentrancyGuard, Pausable {
     /// @notice Whitelists an asset for future deposits and withdrawals.
     /// @param asset The ERC20 asset to whitelist.
     function addAsset(address asset) external onlyOwner {
-        _accrueFees(address(0));
-
         if (asset == address(0)) revert ZeroAddress();
         if (assetConfig[asset].enabled) revert AssetAlreadyWhitelisted(asset);
 
@@ -412,8 +410,6 @@ contract Vault is IVault, Ownable2Step, ReentrancyGuard, Pausable {
     /// @notice Sets the withdrawal timelock.
     /// @param blocks_ The new timelock, in blocks.
     function setTimelockBlocks(uint256 blocks_) external onlyOwner {
-        _accrueFees(address(0));
-
         if (blocks_ > MAX_TIMELOCK_BLOCKS) revert TimelockTooLong(blocks_, MAX_TIMELOCK_BLOCKS);
         timelockBlocks = blocks_;
 
@@ -424,8 +420,6 @@ contract Vault is IVault, Ownable2Step, ReentrancyGuard, Pausable {
     /// @dev Existing fee shares remain at the previous recipient address. Rotations only affect future accrual.
     /// @param recipient The new fee recipient.
     function setFeeRecipient(address recipient) external onlyOwner {
-        _accrueFees(address(0));
-
         if (recipient == address(0)) revert ZeroAddress();
         feeRecipient = recipient;
 
@@ -468,13 +462,11 @@ contract Vault is IVault, Ownable2Step, ReentrancyGuard, Pausable {
 
     /// @notice Pauses new exposure-creating entry points.
     function pause() external onlyOwner {
-        _accrueFees(address(0));
         _pause();
     }
 
     /// @notice Unpauses new exposure-creating entry points.
     function unpause() external onlyOwner {
-        _accrueFees(address(0));
         _unpause();
     }
 
@@ -486,9 +478,6 @@ contract Vault is IVault, Ownable2Step, ReentrancyGuard, Pausable {
         uint256 currentTime = block.timestamp;
         if (totalShares == 0) {
             lastFeeAccrual = currentTime;
-            if (totalPendingWithdrawWad == 0 && totalManagedWad == 0) {
-                highWaterMarkPPS = 0;
-            }
             return;
         }
 

@@ -137,8 +137,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
 
-        _accrueInterest(asset);
-
         Reserve storage reserve = _getReserveStorage(asset);
         uint256 scaledBalance = userScaledSupply[msg.sender][asset];
         uint256 supplyBalance = LendingMath.scaledToUnderlying(scaledBalance, reserve.supplyIndex, Math.Rounding.Floor);
@@ -178,8 +176,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
     function borrow(address asset, uint256 amount, address to) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
-
-        _accrueInterest(asset);
 
         Reserve storage reserve = _getReserveStorage(asset);
         if (!reserve.borrowEnabled) revert BorrowDisabled(asset);
@@ -266,7 +262,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
         if (borrower == address(0)) revert ZeroAddress();
         if (borrower == msg.sender) revert SelfLiquidation();
         if (collateralAsset == debtAsset) revert DebtAssetIsCollateralAsset();
-        _accrueInterest(collateralAsset);
         _accrueInterest(debtAsset);
 
         Reserve storage collateralReserve = _getReserveStorage(collateralAsset);
@@ -443,8 +438,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
         uint16 liquidationBonusBps,
         uint16 reserveFactorBps
     ) external onlyOwner {
-        _accrueInterest(asset);
-
         Reserve storage reserve = _getReserveStorage(asset);
         _validateReserveParams(collateralFactorBps_, liquidationThresholdBps, liquidationBonusBps, reserveFactorBps);
 
@@ -462,8 +455,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
     /// @param asset The reserve asset to update.
     /// @param irParams The new interest-rate parameters.
     function setInterestRateParams(address asset, InterestRateParams calldata irParams) external onlyOwner {
-        _accrueInterest(asset);
-
         Reserve storage reserve = _getReserveStorage(asset);
         reserve.irParams = irParams;
 
@@ -480,8 +471,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
     /// @param asset The reserve asset to update.
     /// @param enabled Whether borrowing should be enabled.
     function setBorrowEnabled(address asset, bool enabled) external onlyOwner {
-        _accrueInterest(asset);
-
         Reserve storage reserve = _getReserveStorage(asset);
         reserve.borrowEnabled = enabled;
 
@@ -492,8 +481,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
     /// @param asset The reserve asset to update.
     /// @param enabled Whether collateral usage should be enabled.
     function setCollateralEnabled(address asset, bool enabled) external onlyOwner {
-        _accrueInterest(asset);
-
         Reserve storage reserve = _getReserveStorage(asset);
         reserve.useAsCollateral = enabled;
 
@@ -525,8 +512,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
     function withdrawReserves(address asset, uint256 amount, address to) external onlyOwner nonReentrant {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
-
-        _accrueInterest(asset);
 
         Reserve storage reserve = _getReserveStorage(asset);
         if (amount > reserve.accruedReserves) {
@@ -616,7 +601,7 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
 
     function _getUpdatedReserve(address asset) internal view returns (Reserve memory reserve) {
         reserve = _getStoredReserve(asset);
-        (reserve,,) = LendingMath.updatedReserve(reserve, block.timestamp);
+        LendingMath.updatedReserve(reserve, block.timestamp);
     }
 
     function _repayLiquidationDebt(
@@ -642,7 +627,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
         // rounding: liquidation burns scaled debt DOWN, same as repay, to favor the protocol.
         uint256 scaledDebtRepaid = Math.mulDiv(debtRepaid, RAY, debtReserve.borrowIndex);
         if (scaledDebtRepaid == 0) revert ZeroAmount();
-        if (scaledDebtRepaid > borrowerScaledDebt) scaledDebtRepaid = borrowerScaledDebt;
 
         IERC20 debtToken = IERC20(debtAsset);
         uint256 debtBalanceBefore = debtToken.balanceOf(address(this));
@@ -828,8 +812,11 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
     }
 
     function _availableLiquidity(address asset, uint256 accruedReserves) internal view returns (uint256 liquidity) {
-        accruedReserves;
-        liquidity = IERC20(asset).balanceOf(address(this));
+        uint256 balance = IERC20(asset).balanceOf(address(this));
+        // Reserve buffer: protocol's accrued reserves are tracked in RAY-scaled scaled-borrow units;
+        // normalize to token units before subtracting from the live balance.
+        uint256 reservedTokens = accruedReserves / RAY;
+        liquidity = balance > reservedTokens ? balance - reservedTokens : 0;
     }
 
     function _validateReserveParams(
