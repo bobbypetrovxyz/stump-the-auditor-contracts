@@ -828,8 +828,11 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
     }
 
     function _availableLiquidity(address asset, uint256 accruedReserves) internal view returns (uint256 liquidity) {
-        accruedReserves;
-        liquidity = IERC20(asset).balanceOf(address(this));
+        uint256 balance = IERC20(asset).balanceOf(address(this));
+        // Reserve buffer: protocol's accrued reserves are tracked in RAY-scaled scaled-borrow units;
+        // normalize to token units before subtracting from the live balance.
+        uint256 reservedTokens = accruedReserves / RAY;
+        liquidity = balance > reservedTokens ? balance - reservedTokens : 0;
     }
 
     function _validateReserveParams(
