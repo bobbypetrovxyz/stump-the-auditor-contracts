@@ -599,17 +599,7 @@ contract Staking is IStaking, Ownable2Step, ReentrancyGuard, Pausable {
     }
 
     function _calculateUpdatedRewardRate(RewardData storage reward, uint256 amount) internal view returns (uint256) {
-        uint256 duration = reward.rewardsDuration;
-        uint256 rewardRate_;
-        if (block.timestamp >= reward.periodFinish) {
-            rewardRate_ = Math.mulDiv(amount, PRECISION, duration);
-        } else {
-            uint256 remaining = reward.periodFinish - block.timestamp;
-            uint256 leftover = Math.mulDiv(remaining, reward.rewardRate, PRECISION);
-            rewardRate_ = Math.mulDiv(amount + leftover, PRECISION, duration);
-        }
-
-        return rewardRate_;
+        return Math.mulDiv(amount, PRECISION, reward.rewardsDuration);
     }
 
     function _assertRewardBacking(address token) internal view {
