@@ -749,9 +749,9 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
         if (userScaledSupply[borrower][collateralAsset] == 0 && _hasCollateral[borrower][collateralAsset]) {
             _removeCollateralAsset(borrower, collateralAsset);
         }
-        if (scaledCollateralTransfer != 0 && !_hasCollateral[liquidator][collateralAsset]) {
-            _hasCollateral[liquidator][collateralAsset] = true;
+        if (scaledCollateralTransfer != 0) {
             userCollateralAssets[liquidator].push(collateralAsset);
+            _hasCollateral[liquidator][collateralAsset] = true;
         }
     }
 
@@ -784,9 +784,9 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
         if (_hasCollateral[borrower][collateralAsset]) {
             _removeCollateralAsset(borrower, collateralAsset);
         }
-        if (borrowerScaledCollateral != 0 && !_hasCollateral[liquidator][collateralAsset]) {
-            _hasCollateral[liquidator][collateralAsset] = true;
+        if (borrowerScaledCollateral != 0) {
             userCollateralAssets[liquidator].push(collateralAsset);
+            _hasCollateral[liquidator][collateralAsset] = true;
         }
 
         collateralSeized = borrowerCollateral;
