@@ -583,7 +583,6 @@ contract Staking is IStaking, Ownable2Step, ReentrancyGuard, Pausable {
         }
 
         reward.rewardPerTokenStored += Math.mulDiv(penalty, ACCUMULATOR_PRECISION, eligibleBoostedSupply);
-        userRewardPerTokenPaid[penalizedUser][primaryRewardToken] = reward.rewardPerTokenStored;
 
         emit PenaltyFlushed(primaryRewardToken, penalty, reward.periodFinish);
     }
