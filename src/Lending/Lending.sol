@@ -137,8 +137,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
 
-        _accrueInterest(asset);
-
         Reserve storage reserve = _getReserveStorage(asset);
         uint256 scaledBalance = userScaledSupply[msg.sender][asset];
         uint256 supplyBalance = LendingMath.scaledToUnderlying(scaledBalance, reserve.supplyIndex, Math.Rounding.Floor);
