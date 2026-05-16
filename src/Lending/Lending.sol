@@ -266,7 +266,6 @@ contract Lending is ILendingPool, Ownable2Step, ReentrancyGuard, Pausable {
         if (borrower == address(0)) revert ZeroAddress();
         if (borrower == msg.sender) revert SelfLiquidation();
         if (collateralAsset == debtAsset) revert DebtAssetIsCollateralAsset();
-        _accrueInterest(collateralAsset);
         _accrueInterest(debtAsset);
 
         Reserve storage collateralReserve = _getReserveStorage(collateralAsset);
